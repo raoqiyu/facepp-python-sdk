@@ -8,6 +8,11 @@ from PythonSDK.facepp import API,File
 # 导入图片处理类
 import PythonSDK.ImagePro
 
+import os
+import time
+import random
+import numpy as np
+
 # 以下四项是dmeo中用到的图片资源，可根据需要替换
 detech_img_url = 'http://bj-mc-prod-asset.oss-cn-beijing.aliyuncs.com/mc-official/images/face/demo-pic11.jpg'
 faceSet_img = './imgResource/demo.jpeg'       # 用于创建faceSet
@@ -28,12 +33,54 @@ def printFuctionTitle(title):
 api = API()
 # -----------------------------------------------------------人脸识别部分-------------------------------------------
 
-# 人脸检测：https://console.faceplusplus.com.cn/documents/4888373
-res = api.detect(image_url=detech_img_url, return_attributes="gender,age,smiling,headpose,facequality,"
-                                                       "blur,eyestatus,emotion,ethnicity,beauty,"
-                                                       "mouthstatus,skinstatus")
-print_result(printFuctionTitle("人脸检测"), res)
 
+imgs = ['./imgResource/'+x for x in os.listdir('./imgResource') if x.endswith('jpg') or x.endswith('jpeg')]
+imgs.remove('./imgResource/5389bc456808841fd11adbce04374346.jpg')
+imgs.remove('./imgResource/d7876d4e257c96fa56360f9dca4f00e7.jpg')
+imgs.remove('./imgResource/31a2a00191da2d0f6393ee09cf1ea8a7.jpg')
+
+print(len(imgs))
+print(imgs)
+
+detection_times = []
+for _ in range(20):
+    begin_time = time.time()
+    img_file = File(random.choice(imgs))
+    # 人脸检测：https://console.faceplusplus.com.cn/documents/4888373
+    res = api.detect(image_file=img_file, return_attributes="gender,age,smiling,headpose,facequality,"
+                                                           "blur,eyestatus,emotion,ethnicity,beauty,"
+                                                           "mouthstatus,skinstatus")
+    end_time = time.time()
+
+    detection_times.append(end_time-begin_time)
+    # print(res['time_used'], detection_times[-1])
+
+print()
+print('Detection time Stat')
+print('Min', min(detection_times))
+print('Max', max(detection_times))
+print('Avg', np.mean(detection_times))
+print()
+
+# print_result(printFuctionTitle("人脸检测"), res)
+
+
+compare_times = []
+for _ in range(20):
+    begin_time = time.time()
+    img_file_1 = File(random.choice(imgs))
+    img_file_2 = File(random.choice(imgs))
+    # 人脸比对：https://console.faceplusplus.com.cn/documents/4887586
+    compare_res = api.compare(image_file1=img_file_1, image_file2=img_file_2)
+
+    end_time = time.time()
+    compare_times.append(end_time-begin_time)
+
+print('Compare time Stat')
+print('Min', min(compare_times))
+print('Max', max(compare_times))
+print('Avg', np.mean(compare_times))
+print()
 
 # 人脸比对：https://console.faceplusplus.com.cn/documents/4887586
 # compare_res = api.compare(image_file1=File(face_search_img), image_file2=File(face_search_img))
@@ -46,26 +93,46 @@ print_result(printFuctionTitle("人脸检测"), res)
 # 3，开始搜索
 
 # 删除无用的人脸库，这里删除了，如果在项目中请注意是否要删除
-# api.faceset.delete(outer_id='faceplusplus', check_empty=0)
+api.faceset.delete(outer_id='faceplusplus', check_empty=0)
 # # 1.创建一个faceSet
-# ret = api.faceset.create(outer_id='faceplusplus')
+ret = api.faceset.create(outer_id='faceplusplus')
 #
 # # 2.向faceSet中添加人脸信息(face_token)
-# faceResStr=""
-# res = api.detect(image_file=File(faceSet_img))
-# faceList = res["faces"]
-# for index in range(len(faceList)):
-#     if(index==0):
-#         faceResStr = faceResStr + faceList[index]["face_token"]
-#     else:
-#         faceResStr = faceResStr + ","+faceList[index]["face_token"]
-#
-# api.faceset.addface(outer_id='faceplusplus', face_tokens=faceResStr)
-#
+for img_file in imgs:
+    # print(img_file)
+    faceResStr=""
+    res = api.detect(image_file=File(img_file))
+    faceList = res["faces"]
+    # print(len(faceList))
+    for index in range(len(faceList)):
+        if(index==0):
+            faceResStr = faceResStr + faceList[index]["face_token"]
+        else:
+            faceResStr = faceResStr + ","+faceList[index]["face_token"]
+
+    api.faceset.addface(outer_id='faceplusplus', face_tokens=faceResStr)
+
+    #
 # # 3.开始搜索相似脸人脸信息
 # search_result = api.search(image_file=File(face_search_img), outer_id='faceplusplus')
 # print_result('search', search_result)
 
+
+search_times = []
+for _ in range(20):
+    begin_time = time.time()
+    img_file = File(random.choice(imgs))
+    # # 3.开始搜索相似脸人脸信息
+    search_result = api.search(image_file=img_file, outer_id='faceplusplus')
+
+    end_time = time.time()
+    search_times.append(end_time-begin_time)
+print()
+print('Search time Stat')
+print('Min', min(search_times))
+print('Max', max(search_times))
+print('Avg', np.mean(search_times))
+print()
 # -----------------------------------------------------------人体识别部分-------------------------------------------
 
 # 人体抠像:https://console.faceplusplus.com.cn/documents/10071567
